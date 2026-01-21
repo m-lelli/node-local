@@ -182,10 +182,34 @@ function New-CoreProxyFiles {
     # Verifica se bash è disponibile
     $bashAvailable = Test-BashAvailable
     
-    # CMD proxies
-    $nodeResult = New-GenericProxyIfExists -CommandName "NODE" -CommandExe "node.exe" -ProxyName $nodeCmd -VersionPath $versionPath -BinPath $binPath -TemplatePath $genericTemplate -SettingsFile $settingsFile -VersionsPath $versionsPath
+    # CMD proxies - Solo npm e npx (node usa .exe shim)
     $npmResult = New-PackageManagerProxyIfExists -PackageManager "npm" -ProxyName $npmCmd -VersionPath $versionPath -BinPath $binPath -TemplatePath $pmTemplate -SettingsFile $settingsFile -VersionsPath $versionsPath -ScriptPath $scriptPath
     $npxResult = New-GenericProxyIfExists -CommandName "NPX" -CommandExe "npx.cmd" -ProxyName $npxCmd -VersionPath $versionPath -BinPath $binPath -TemplatePath $genericTemplate -SettingsFile $settingsFile -VersionsPath $versionsPath
+    
+    # # Genera shim .exe per node (per compatibilità con script .bat che non usano call)
+    # $nodeResult = $false
+    # try {
+    #     # Rimuovi node.cmd se esiste (ora usiamo solo node.exe)
+    #     $nodeCmdPath = Join-Path $binPath $nodeCmd
+    #     if (Test-Path $nodeCmdPath) {
+    #         Remove-Item -Path $nodeCmdPath -Force | Out-Null
+    #         Write-Host "  Rimosso vecchio node.cmd" -ForegroundColor Gray
+    #     }
+        
+    #     # Genera node.exe
+    #     $nodeExePath = Join-Path $binPath ($nodeCmd -replace '\.cmd$', '.exe')
+    #     Write-Host "Generazione shim .exe per node..." -ForegroundColor Cyan
+    #     $nodeResult = New-ExeShim -OutputPath $nodeExePath -SettingsFile $settingsFile -VersionsPath $versionsPath -TargetExe "node.exe"
+    #     if ($nodeResult) {
+    #         Write-Host "  Shim .exe creato: $nodeExePath" -ForegroundColor Green
+    #     }
+    # }
+    # catch {
+    #     Write-Host "  Avviso: Non è stato possibile creare lo shim .exe" -ForegroundColor Yellow
+    #     Write-Host "  Verrà generato node.cmd come fallback" -ForegroundColor Yellow
+    #     # Fallback: genera node.cmd se l'exe fallisce
+    #     $nodeResult = New-GenericProxyIfExists -CommandName "NODE" -CommandExe "node.exe" -ProxyName $nodeCmd -VersionPath $versionPath -BinPath $binPath -TemplatePath $genericTemplate -SettingsFile $settingsFile -VersionsPath $versionsPath
+    # }
     
     # Bash proxies (per Git Bash) - SOLO se bash è disponibile
     if ($bashAvailable -and (Test-Path $genericBashTemplate)) {
@@ -203,6 +227,13 @@ function New-CoreProxyFiles {
     if (-not ($nodeResult -and $npmResult -and $npxResult)) {
         $success = $false
     }
+    
+    # Pulizia finale: rimuovi node.cmd se node.exe esiste
+    # $nodeExePath = Join-Path $binPath ($nodeCmd -replace '\.cmd$', '.exe')
+    # $nodeCmdPath = Join-Path $binPath $nodeCmd
+    # if ((Test-Path $nodeExePath) -and (Test-Path $nodeCmdPath)) {
+    #     Remove-Item -Path $nodeCmdPath -Force | Out-Null
+    # }
     
     return $success
 }

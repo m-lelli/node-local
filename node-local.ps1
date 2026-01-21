@@ -57,6 +57,7 @@ try {
     . "$ScriptRoot\lib\versions.ps1"
     . "$ScriptRoot\lib\installation.ps1"
     . "$ScriptRoot\lib\sync.ps1"
+    . "$ScriptRoot\lib\shim.ps1"
     . "$ScriptRoot\lib\remote.ps1"
     . "$ScriptRoot\lib\security.ps1"
     . "$ScriptRoot\lib\ui.ps1"

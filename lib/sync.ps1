@@ -44,11 +44,12 @@ function Sync-GlobalCommands {
     if ($Force) {
         $proxies.clearAllCommands()
         
-        # Rigenera i comandi core
-        $scriptRoot = Split-Path $PSScriptRoot -Parent
-        New-CoreProxyFiles -ScriptRootPath $scriptRoot -Mode $currentMode | Out-Null
+        # Rigenera i comandi core (node, npm, npx)
+        # $scriptRoot = Split-Path $PSScriptRoot -Parent
+        # New-CoreProxyFiles -ScriptRootPath $scriptRoot -Mode $currentMode | Out-Null
         
-        # Crea tutti i proxy (comandi + manager)
+        # Crea tutti i proxy dinamici (comandi aggiuntivi + manager)
+        # Nota: createProxies ora salta node perché già gestito da New-CoreProxyFiles
         $result = $proxies.createProxies($installation, $false, $currentMode)
     } else {
         $proxies.clearDynamicCommands()
@@ -61,5 +62,22 @@ function Sync-GlobalCommands {
     $commandsCreated = $result[0]
     $managersCreated = $result[1]
     $totalCreated = $commandsCreated + $managersCreated
+    
+    # Pulizia finale: rimuovi node.cmd se node.exe esiste (ora usiamo solo .exe shim per node)
+    $config = [ConfigurationClass]::GetInstance()
+    $nodeExePath = Join-Path $config.binPath "node.exe"
+    $nodeCmdPath = Join-Path $config.binPath "node.cmd"
+    if ((Test-Path $nodeExePath) -and (Test-Path $nodeCmdPath)) {
+        Remove-Item -Path $nodeCmdPath -Force -ErrorAction SilentlyContinue | Out-Null
+    }
+    # Se modalità isolated, rimuovi anche nlocal-node.cmd
+    if ($currentMode -eq "isolated") {
+        $nlocalNodeCmdPath = Join-Path $config.binPath "nlocal-node.cmd"
+        $nlocalNodeExePath = Join-Path $config.binPath "nlocal-node.exe"
+        if ((Test-Path $nlocalNodeExePath) -and (Test-Path $nlocalNodeCmdPath)) {
+            Remove-Item -Path $nlocalNodeCmdPath -Force -ErrorAction SilentlyContinue | Out-Null
+        }
+    }
+    
     Write-SuccessMessage "Sincronizzazione completata: $totalCreated proxy creati ($commandsCreated comandi, $managersCreated manager)"
 }
