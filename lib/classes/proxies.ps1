@@ -253,11 +253,6 @@ class Proxies {
                 continue
             }
             
-            # Salta node - viene gestito da New-CoreProxyFiles
-            # if ($baseName -ieq "node") {
-            #     continue
-            # }
-            
             # Crea il proxy
             if ($isManager) {
                 if ($this.createProxy($baseName, $commandExe, [ProxyRole]::MANAGER, $mode)) {

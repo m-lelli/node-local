@@ -43,13 +43,8 @@ function Sync-GlobalCommands {
     # Se non --force, rimuovi solo i comandi dinamici e ricrea solo COMMAND (onlyCommands = true)
     if ($Force) {
         $proxies.clearAllCommands()
-        
-        # Rigenera i comandi core (node, npm, npx)
-        # $scriptRoot = Split-Path $PSScriptRoot -Parent
-        # New-CoreProxyFiles -ScriptRootPath $scriptRoot -Mode $currentMode | Out-Null
-        
+
         # Crea tutti i proxy dinamici (comandi aggiuntivi + manager)
-        # Nota: createProxies ora salta node perché già gestito da New-CoreProxyFiles
         $result = $proxies.createProxies($installation, $false, $currentMode)
     } else {
         $proxies.clearDynamicCommands()
