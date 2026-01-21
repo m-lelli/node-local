@@ -125,6 +125,7 @@ class Proxies {
             
             return $true
         } catch {
+            Write-Error "Errore nella creazione dello shim .exe per $targetExe : $_"
             return $false
         }
     }
