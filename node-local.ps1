@@ -62,10 +62,12 @@ try {
     . "$ScriptRoot\lib\security.ps1"
     . "$ScriptRoot\lib\ui.ps1"
     . "$ScriptRoot\lib\modes.ps1"
-    . "$ScriptRoot\lib\aliases.ps1"
+    # DEPRECATO: aliases.ps1 sostituito dalla classe Installations in lib/classes/installations.ps1
+    # . "$ScriptRoot\lib\aliases.ps1"
     . "$ScriptRoot\lib\remove.ps1"
-    . "$ScriptRoot\lib\upgrade.ps1"
-    . "$ScriptRoot\lib\downgrade.ps1"
+    # DISABILITATO: upgrade e downgrade richiedono refactoring per supportare nuova architettura a classi
+    # . "$ScriptRoot\lib\upgrade.ps1"
+    # . "$ScriptRoot\lib\downgrade.ps1"
     . "$ScriptRoot\lib\rename.ps1"
 }
 catch {
