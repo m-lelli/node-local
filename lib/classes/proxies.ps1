@@ -104,6 +104,32 @@ class Proxies {
         }
     }
 
+    # Crea un proxy .exe per node (shim C# compilato)
+    hidden [bool] newNodeExeShim([string]$outputPath, [string]$targetExe) {
+        $templatePath = Join-Path $this.templatesPath "node-shim.cs.template"
+        
+        if (-not (Test-Path $templatePath)) {
+            return $false
+        }
+        try {
+            # Leggi il template C#
+            $csharpCode = Get-Content -Path $templatePath -Raw -Encoding UTF8
+            
+            # Sostituisci i placeholder
+            $csharpCode = $csharpCode -replace '\{\{SETTINGS_FILE\}\}', $this.settingsFile
+            $csharpCode = $csharpCode -replace '\{\{VERSIONS_PATH\}\}', $this.versionsPath
+            $csharpCode = $csharpCode -replace '\{\{TARGET_EXE\}\}', $targetExe
+            
+            # Compila il codice C# in un .exe
+            Add-Type -TypeDefinition $csharpCode -OutputAssembly $outputPath -OutputType ConsoleApplication
+            
+            return $true
+        } catch {
+            Write-Error "Errore nella creazione dello shim .exe per $targetExe : $_"
+            return $false
+        }
+    }
+
     # Crea un proxy CMD per MANAGER (npm, yarn, pnpm, etc.)
     hidden [bool] newManagerProxy([string]$packageManager, [string]$outputPath) {
         $templatePath = Join-Path $this.templatesPath "package-manager.cmd.template"
@@ -167,9 +193,22 @@ class Proxies {
         $success = $false
         
         if ($role -eq [ProxyRole]::COMMAND) {
-            $success = $this.newCommandProxy($name, $commandExe, $cmdPath)
-            if ($success -and $this.bashAvailable) {
-                $this.newCommandBashProxy($name, $commandExe, $bashPath) | Out-Null
+            # Per node, crea uno shim .exe invece di .cmd
+            if ($name -ieq "node") {
+                $exeFileName = "$prefix$name.exe"
+                $exePath = Join-Path $this.binPath $exeFileName
+                $success = $this.newNodeExeShim($exePath, $commandExe)
+                
+                # Crea comunque il proxy bash per Git Bash
+                if ($success -and $this.bashAvailable) {
+                    $this.newCommandBashProxy($name, $commandExe, $bashPath) | Out-Null
+                }
+            } else {
+                # Per tutti gli altri comandi, comportamento normale
+                $success = $this.newCommandProxy($name, $commandExe, $cmdPath)
+                if ($success -and $this.bashAvailable) {
+                    $this.newCommandBashProxy($name, $commandExe, $bashPath) | Out-Null
+                }
             }
         } elseif ($role -eq [ProxyRole]::MANAGER) {
             $success = $this.newManagerProxy($name, $cmdPath)
@@ -202,7 +241,7 @@ class Proxies {
         # Trova tutti i file .cmd e .exe nella cartella dell'installazione
         $files = Get-ChildItem -Path $versionPath -File -ErrorAction SilentlyContinue | 
             Where-Object { $_.Extension -in @('.cmd', '.exe') }
-        
+                
         foreach ($file in $files) {
             $baseName = $file.BaseName
             $commandExe = $file.Name

@@ -1,5 +1,4 @@
 @echo off
-setlocal enabledelayedexpansion
 
 REM Leggi la versione corrente dal file settings
 set "SETTINGS_FILE={{SETTINGS_FILE}}"
@@ -21,14 +20,14 @@ if "%CURRENT_VERSION%"=="" (
 )
 
 REM Costruisci il path alla versione
-set "{{COMMAND_NAME}}_EXE=%VERSIONS_PATH%\%CURRENT_VERSION%\{{COMMAND_EXE}}"
+set {{COMMAND_NAME}}_EXE=%VERSIONS_PATH%\%CURRENT_VERSION%\{{COMMAND_EXE}}
 
-if not exist "!{{COMMAND_NAME}}_EXE!" (
+if not exist "%{{COMMAND_NAME}}_EXE%" (
             echo Errore: {{COMMAND_NAME}} versione %CURRENT_VERSION% non trovato.
-            echo Path: !{{COMMAND_NAME}}_EXE!
+            echo Path: %{{COMMAND_NAME}}_EXE%
             echo Usa 'node-local list' per vedere le versioni disponibili.
             exit /b 1
 )
 
 REM Esegui {{COMMAND_NAME}} con tutti i parametri
-"!{{COMMAND_NAME}}_EXE!" %*
+"%{{COMMAND_NAME}}_EXE%" %*

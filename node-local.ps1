@@ -57,15 +57,19 @@ try {
     . "$ScriptRoot\lib\versions.ps1"
     . "$ScriptRoot\lib\installation.ps1"
     . "$ScriptRoot\lib\sync.ps1"
+    . "$ScriptRoot\lib\shim.ps1"
     . "$ScriptRoot\lib\remote.ps1"
     . "$ScriptRoot\lib\security.ps1"
     . "$ScriptRoot\lib\ui.ps1"
     . "$ScriptRoot\lib\modes.ps1"
-    . "$ScriptRoot\lib\aliases.ps1"
+    # DEPRECATO: aliases.ps1 sostituito dalla classe Installations in lib/classes/installations.ps1
+    # . "$ScriptRoot\lib\aliases.ps1"
     . "$ScriptRoot\lib\remove.ps1"
-    . "$ScriptRoot\lib\upgrade.ps1"
-    . "$ScriptRoot\lib\downgrade.ps1"
+    # DISABILITATO: upgrade e downgrade richiedono refactoring per supportare nuova architettura a classi
+    # . "$ScriptRoot\lib\upgrade.ps1"
+    # . "$ScriptRoot\lib\downgrade.ps1"
     . "$ScriptRoot\lib\rename.ps1"
+    . "$ScriptRoot\lib\run.ps1"
 }
 catch {
     Write-Host "[ERRORE] Caricamento dei moduli non ossibile: $($_.Exception.Message)" -ForegroundColor Red
@@ -184,6 +188,76 @@ switch ($Command.ToLower()) {
     "rename" {
         $parsed = Get-ParsedArgs -RawArgs $Args
         Invoke-RenameAlias -From $parsed.From -To $parsed.To
+    }
+    "run" {
+        $parsed = Get-ParsedArgs -RawArgs $Args
+        
+        # Validazione parametri
+        $fullCommand = $parsed.FirstPositional
+        $targetVersion = $parsed.WithVersion
+        
+        if (-not $fullCommand -or -not $targetVersion) {
+            Write-ErrorMessage "Parametri mancanti per il comando run"
+            Write-Host ""
+            Write-Host "Sintassi:" -ForegroundColor Cyan
+            Write-Host "  node-local run `"<comando>`" --with-version `"<alias>`"" -ForegroundColor White
+            Write-Host ""
+            Show-RunUsageExamples
+            return
+        }
+        
+        # Parsing del comando completo: "tsc --version" -> Command: "tsc", Args: @("--version")
+        $commandParts = $fullCommand.Trim() -split '\s+', 2
+        $commandName = $commandParts[0]
+        
+        # Splitta gli argomenti mantenendo le quote
+        $commandArgs = @()
+        if ($commandParts.Length -gt 1) {
+            # Parse avanzato per gestire stringhe quotate
+            $argString = $commandParts[1]
+            $commandArgs = @()
+            $currentArg = ""
+            $inQuote = $false
+            $quoteChar = $null
+            
+            for ($i = 0; $i -lt $argString.Length; $i++) {
+                $char = $argString[$i]
+                
+                if (($char -eq '"' -or $char -eq "'") -and (-not $inQuote -or $char -eq $quoteChar)) {
+                    if ($inQuote) {
+                        # Chiude la quote
+                        $inQuote = $false
+                        $quoteChar = $null
+                    } else {
+                        # Apre la quote
+                        $inQuote = $true
+                        $quoteChar = $char
+                    }
+                }
+                elseif ($char -eq ' ' -and -not $inQuote) {
+                    if ($currentArg) {
+                        $commandArgs += $currentArg
+                        $currentArg = ""
+                    }
+                }
+                else {
+                    $currentArg += $char
+                }
+            }
+            
+            # Aggiungi l'ultimo argomento
+            if ($currentArg) {
+                $commandArgs += $currentArg
+            }
+        }
+        
+        # Esegui il comando
+        $exitCode = Invoke-TemporaryCommand -Command $commandName -VersionAlias $targetVersion -Arguments $commandArgs
+        
+        # Propaga exit code (utile per CI/CD)
+        if ($exitCode -and $exitCode -ne 0) {
+            exit $exitCode
+        }
     }
     "sync" {
         $parsed = Get-ParsedArgs -RawArgs $Args

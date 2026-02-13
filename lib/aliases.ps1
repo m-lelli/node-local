@@ -1,6 +1,8 @@
 # =============================================================================
 # aliases.ps1 - Gestione alias per versioni Node.js (Sistema Cartelle)
 # =============================================================================
+# DEPRECATO: Questo file contiene funzioni legacy.
+# Utilizzare la classe Installations in lib/classes/installations.ps1
 # Sistema alias basato su nomi cartelle invece di JSON
 
 # Ottiene tutte le "installazioni" (cartelle in versions/)

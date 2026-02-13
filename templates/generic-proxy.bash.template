@@ -37,3 +37,5 @@ fi
 
 # Execute the command with all arguments
 exec "$COMMAND_PATH" "$@"
+# Fallback if exec fails (should never reach here normally)
+exit $?

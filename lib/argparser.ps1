@@ -22,6 +22,7 @@ function Get-ParsedArgs {
         List = $false
         From = $null
         To = $null
+        WithVersion = $null
     }
 
     if (-not $RawArgs) { return $result }
@@ -63,6 +64,15 @@ function Get-ParsedArgs {
             '^--?to$' {
                 if (($i + 1) -lt $RawArgs.Count) {
                     $result.To = $RawArgs[$i + 1]
+                    $i += 2
+                    continue
+                } else {
+                    $i++ ; continue
+                }
+            }
+            '^--?with-version$' {
+                if (($i + 1) -lt $RawArgs.Count) {
+                    $result.WithVersion = $RawArgs[$i + 1]
                     $i += 2
                     continue
                 } else {
