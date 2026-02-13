@@ -63,6 +63,14 @@ function Rename-Usage-Example {
     )
 }
 
+function Run-Usage-Example {
+    Write-CommandUsage -Command "run" -Usage "run `"<comando>`" --with-version <alias>" -Examples @(
+        "node-local run `"tsc --version`" --with-version production",
+        "node-local run `"npm test`" --with-version latest",
+        "node-local run `"npx cowsay hello`" --with-version 20.11.0"
+    )
+}
+
 function Show-Cache-Usage-Example {
     Write-CommandUsage -Command "cache" -Usage "cache <command>" -Examples @(
         "node-local cache --list",
@@ -183,5 +191,6 @@ function Show-Help {
     Use-Usage-Example
     Remove-Usage-Example
     Rename-Usage-Example
+    Run-Usage-Example
     Show-Cache-Usage-Example
 }
