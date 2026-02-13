@@ -120,8 +120,38 @@ class Proxies {
             $csharpCode = $csharpCode -replace '\{\{VERSIONS_PATH\}\}', $this.versionsPath
             $csharpCode = $csharpCode -replace '\{\{TARGET_EXE\}\}', $targetExe
             
-            # Compila il codice C# in un .exe
-            Add-Type -TypeDefinition $csharpCode -OutputAssembly $outputPath -OutputType ConsoleApplication
+            # Strategia di compilazione basata sulla versione di PowerShell
+            $psVersion = (Get-Variable -Name PSVersionTable -Scope Global).Value.PSVersion.Major
+            if ($psVersion -ge 7) {
+                # PowerShell 7+: usa csc.exe (Add-Type -OutputType non supportato)
+                $cscPath = Get-ChildItem -Path "C:\Windows\Microsoft.NET\Framework*" -Recurse -Filter "csc.exe" -ErrorAction SilentlyContinue |
+                    Sort-Object FullName -Descending |
+                    Select-Object -First 1 -ExpandProperty FullName
+                
+                if (-not $cscPath) {
+                    Write-Error "Compilatore C# (csc.exe) non trovato nel sistema"
+                    return $false
+                }
+                
+                # Crea un file temporaneo .cs
+                $tempCs = [System.IO.Path]::GetTempFileName() + ".cs"
+                $csharpCode | Out-File -FilePath $tempCs -Encoding UTF8
+                
+                # Compila con csc.exe
+                $compileOutput = & $cscPath /target:exe /out:$outputPath $tempCs /nologo 2>&1
+                $compileSuccess = $LASTEXITCODE -eq 0
+                
+                # Rimuovi il file temporaneo
+                Remove-Item $tempCs -Force -ErrorAction SilentlyContinue
+                
+                if (-not $compileSuccess) {
+                    Write-Error "Errore nella compilazione dello shim .exe per $targetExe : $compileOutput"
+                    return $false
+                }
+            } else {
+                # PowerShell 5.x: usa Add-Type (metodo nativo)
+                Add-Type -TypeDefinition $csharpCode -OutputAssembly $outputPath -OutputType ConsoleApplication
+            }
             
             return $true
         } catch {
