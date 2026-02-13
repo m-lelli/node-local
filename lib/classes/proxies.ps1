@@ -197,10 +197,19 @@ class Proxies {
             if ($name -ieq "node") {
                 $exeFileName = "$prefix$name.exe"
                 $exePath = Join-Path $this.binPath $exeFileName
-                $success = $this.newNodeExeShim($exePath, $commandExe)
                 
-                # Crea comunque il proxy bash per Git Bash
-                if ($success -and $this.bashAvailable) {
+                # Prova a creare lo shim .exe (può fallire se esiste già)
+                $exeSuccess = $this.newNodeExeShim($exePath, $commandExe)
+                
+                # Se lo shim esiste (creato ora o già presente), consideralo un successo
+                if (Test-Path $exePath) {
+                    $success = $true
+                } else {
+                    $success = $exeSuccess
+                }
+                
+                # Crea SEMPRE il proxy bash per Git Bash (indipendente dallo shim .exe)
+                if ($this.bashAvailable) {
                     $this.newCommandBashProxy($name, $commandExe, $bashPath) | Out-Null
                 }
             } else {

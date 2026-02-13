@@ -2,6 +2,11 @@
 # Package manager bash proxy wrapper for node-local npm/yarn/pnpm commands
 # This script is auto-generated and called by Git Bash and other Unix-like shells
 
+# Exit silently if running in WSL - let WSL use its own Node.js installation
+if [ -f /proc/version ] && grep -qi "microsoft\|wsl" /proc/version 2>/dev/null; then
+    exit 127  # Command not found - allows WSL to use native node or fall through
+fi
+
 SETTINGS_FILE="{{SETTINGS_FILE}}"
 VERSIONS_PATH="{{VERSIONS_PATH}}"
 PM_NAME="{{PM_NAME}}"
